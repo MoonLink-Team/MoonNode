@@ -1,50 +1,74 @@
-# MoonNodes VPS Manager
+# MoonNodes VPS Bot 🌙
 
-An enterprise-grade Discord bot to automate, manage, and scale LXC/LXD VPS hosting operations.
+A highly advanced, fully featured **LXC/LXD VPS Management System** built entirely within Discord. This bot allows users to deploy, manage, and connect to their own Linux containers directly from Discord via a sleek UI dashboard.
 
-## 🚀 Core Features
-- **Automated Deployments:** Deploy Ubuntu/Debian containers directly via Discord commands.
-- **Resource Management:** Set RAM, CPU, and Disk limitations. Auto-suspends over-utilization.
-- **Game Server Auto-Installers:** One-click install for Minecraft, Rust, CS2, and FiveM via the Software Installer menu.
-- **Economy & Billing (ABEI):** Built-in credit system with promo codes (`CPCS`), upgrades/downgrades (`PUDC`), and a user marketplace (`MSTC`).
-- **Multi-Node Architecture:** Deploy instances across multiple physical LXD remotes with smart auto-balancing.
-- **Automated Subdomains (ASM):** Cloudflare integration for instant domain generation.
+## ✨ Features
 
-## User Commands
-* `/list` - View your active VPS instances.
-* `/manage` - Open the control panel to start/stop, reinstall, open Web SSH, or install software.
-* `/backup` - Create or restore a snapshot of your VPS (Subject to User Backup Limits).
-* `/share` - Add or remove access to your VPS for another Discord user.
-* `/plans` - View available Free and Premium plans.
-* `/claim` - Claim a Premium VPS, a Free VPS, or redeem a Promo Code.
-* `/affiliate` - Check your referral credits, or transfer credits to another user.
-* `/support` - Open a private ticket thread with the staff regarding a specific VPS.
-* `/status` - Check the host node's live CPU/RAM and uptime.
-* `/transfer` - (If MSTC is enabled) Transfer your VPS to another user for credits.
-* `/upgrade` - (If PUDC is enabled) Upgrade your VPS plan using your credit balance.
+- **Live Discord Dashboard:** Real-time hardware metrics (CPU, RAM, Disk I/O) and server status.
+- **Power Controls:** Start, Stop, or Reinstall OS natively through Discord buttons.
+- **1-Click Software Installers:** Auto-install Docker, Game Servers (Minecraft, Rust, CS2, FiveM), Pterodactyl, WordPress, Traefik, Nginx, and more.
+- **Secure Connections:** Automated Tailscale authentication and standard SSH connection strings.
+- **Multi-Node Architecture:** Auto-balance and deploy containers across multiple physical dedicated servers.
+- **Economy & Billing:** Sell Premium and Free VPS plans, integrated with GCash/PayPal proof of payments.
+- **Automations:** Automated Cloudflare subdomains, daily snapshot backups, idle resource monitoring, and expiration suspensions.
+- **Support System:** Built-in private ticket and thread creation linked to specific VPS instances.
 
-## Admin Commands
-* `/system-admin` - Manage system toggles, clean the DB, edit A2FA, or migrate VPS containers between nodes.
-* `/vps` - Force suspend or unsuspend a user's VPS.
-* `/create` - Bypass restrictions and forcefully deploy a VPS to a user.
-* `/delete` - Terminate a VPS and delete all user data permanently.
-* `/giveaway` - Start a Discord giveaway where the winner automatically receives a deployed VPS.
-* `/list-all` - View all running and stopped VPS instances across the network.
-* `/admin` - Add or remove Owner, Admin, Mod, or Dev roles.
-* `/set` - Change log channels, ticket channels, and auto-shutdown resource limits.
-* `/nodes` - Check the status of the multi-node cluster.
+## ⚙️ Requirements
 
-## ⚙️ Extensions (`/system-admin Extension`)
-1. **asm** - Automated Subdomain Management
-2. **multi_node** - Multi-Node Architecture & Migrations
-3. **sosb** - Scheduled & Off-Site Backups
-4. **abei** - Automated Billing & Economy
-5. **ists** - Integrated Support Ticket System
-6. **aes** - Automated Expiration & Suspensions
-7. **rr** - Renewal Reminders
-8. **ra** - Referral / Affiliate System
-9. **a2fa** - Admin 2-Factor Authentication
-10. **cpcs** - Coupon & Promo Code System
-11. **mstc** - Marketplace & Server Transfers
-12. **pudc** - Plan Upgrades & Downgrades
-13. **ubl** - User Backup Limits
+- Ubuntu (20.04/22.04/24.04) or Debian (11/12) Host Server
+- LXC / LXD hypervisor installed and initialized
+- Python 3.8+
+- A Discord Bot Token
+
+## 🚀 Installation Guide
+
+For the full step-by-step installation guide to prepare your Linux server, install LXD, and boot up the bot, please read the included [install.txt](install.txt) file.
+
+### Quick Start
+1. Clone the repository to your host machine.
+2. Rename `.env.example` to `.env` and fill in your Discord Token and setup details.
+3. Install dependencies:
+   ```bash
+   pip3 install discord.py python-dotenv aiohttp
+   ```
+4. Run the bot:
+   ```bash
+   python3 bot.py
+   ```
+# MoonNodes VPS Bot 🌙
+
+A highly advanced, fully featured **LXC/LXD VPS Management System** built entirely within Discord. This bot allows users to deploy, manage, and connect to their own Linux containers directly from Discord via a sleek UI dashboard.
+
+## ✨ Features
+
+- **Live Discord Dashboard:** Real-time hardware metrics (CPU, RAM, Disk I/O) and server status.
+- **Power Controls:** Start, Stop, or Reinstall OS natively through Discord buttons.
+- **1-Click Software Installers:** Auto-install Docker, Game Servers (Minecraft, Rust, CS2, FiveM), Pterodactyl, WordPress, Traefik, Nginx, and more.
+- **Secure Connections:** Automated Tailscale authentication and standard SSH connection strings.
+- **Multi-Node Architecture:** Auto-balance and deploy containers across multiple physical dedicated servers.
+- **Economy & Billing:** Sell Premium and Free VPS plans, integrated with GCash/PayPal proof of payments.
+- **Automations:** Automated Cloudflare subdomains, daily snapshot backups, idle resource monitoring, and expiration suspensions.
+- **Support System:** Built-in private ticket and thread creation linked to specific VPS instances.
+
+## ⚙️ Requirements
+
+- Ubuntu (20.04/22.04/24.04) or Debian (11/12) Host Server
+- LXC / LXD hypervisor installed and initialized
+- Python 3.8+
+- A Discord Bot Token
+
+## 🚀 Installation Guide
+
+For the full step-by-step installation guide to prepare your Linux server, install LXD, and boot up the bot, please read the included [install.txt](install.txt) file.
+
+### Quick Start
+1. Clone the repository to your host machine.
+2. Rename `.env.example` to `.env` and fill in your Discord Token and setup details.
+3. Install dependencies:
+   ```bash
+   pip3 install discord.py python-dotenv aiohttp
+   ```
+4. Run the bot:
+   ```bash
+   python3 bot.py
+   ```
