@@ -68,7 +68,6 @@ git clone https://github.com/MoonLink-Team/MoonNode
 cd MoonNode
 apt install zip
 unzip dev.zip
-cd dev
 ```
 
 ### 6 — Create virtual environment and install dependencies
