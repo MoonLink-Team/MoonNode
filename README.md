@@ -15,7 +15,8 @@
 7. [First-Time Discord Setup](#first-time-discord-setup)
 8. [All Commands](#all-commands)
 9. [Extensions](#extensions)
-10. [Troubleshooting](#troubleshooting)
+10. [Setting Up a Node (Multi-Node Cluster)](#setting-up-a-node-multi-node-cluster)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -391,6 +392,297 @@ Extensions are optional features you can toggle on/off from `/system-admin actio
 | **Admin 2FA** | `A2FA=True` | Requires a 4-digit PIN for sensitive admin actions. Set your PIN with `/system-admin action:A2FA Management`. |
 | **Multi-Server Tickets** | `MSTC=True` | Allows support tickets to be routed to different channels per server (for multi-guild setups). |
 | **Backup Limits** | `UBL_ENABLED=True` | Enforces a maximum number of snapshots per VPS. Configure the cap with `/set setting:Backup Limits`. |
+
+---
+
+## Setting Up a Node (Multi-Node Cluster)
+
+A **node** is any Linux server running LXD that the bot can connect to remotely. Your main bot server is always `local` (Node #1). You can add as many extra servers as you want — each becomes a separate node that can host VPS containers independently.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Discord Bot (local)                   │
+│               bot.py  ·  moonnodes.db                   │
+└──────────────┬──────────────────────────┬───────────────┘
+               │  LXD API (port 8443)     │  LXD API (port 8443)
+               ▼                          ▼
+   ┌───────────────────┐      ┌───────────────────┐
+   │   Node: node-sg-1 │      │   Node: node-us-1 │
+   │   Singapore VPS   │      │   US East VPS     │
+   └───────────────────┘      └───────────────────┘
+```
+
+---
+
+### Step 1 — Requirements for the Remote Node Server
+
+Each node server needs:
+
+| Requirement | Details |
+|---|---|
+| OS | Ubuntu 20.04+ or Debian 11+ |
+| LXD | 5.0+ (installed via snap) |
+| Open port | **8443** accessible from the bot server |
+| RAM | 2 GB minimum (more depending on how many VPS you host) |
+| Storage | 20 GB minimum |
+
+The remote node does **not** need Python or the bot code. It only needs LXD running.
+
+---
+
+### Step 2 — Install LXD on the Remote Node
+
+SSH into the remote server and run:
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install snapd if not present
+sudo apt install snapd -y
+
+# Install LXD
+sudo snap install lxd
+
+# Add your user to the lxd group
+sudo usermod -aG lxd $USER
+newgrp lxd
+
+# Verify
+lxc --version
+```
+
+---
+
+### Step 3 — Initialize LXD on the Remote Node
+
+Run the LXD setup wizard:
+
+```bash
+sudo lxd init
+```
+
+When prompted, use these recommended answers:
+
+```
+Would you like to use LXD clustering? (yes/no) [default=no]: no
+Do you want to configure a new storage pool? (yes/no) [default=yes]: yes
+Name of the new storage pool [default=default]: default
+Name of the storage backend to use (btrfs, dir, lvm, zfs, ceph) [default=zfs]: dir
+Would you like to connect to a MAAS server? (yes/no) [default=no]: no
+Would you like to create a new local network bridge? (yes/no) [default=yes]: yes
+What should the new bridge be called? [default=lxdbr0]: lxdbr0
+What IPv4 address should be used? (CIDR subnet notation, "auto" or "none") [default=auto]: auto
+What IPv6 address should be used? (CIDR subnet notation, "auto" or "none") [default=auto]: none
+Would you like the LXD server to be available over the network? (yes/no) [default=no]: YES  ← important
+Address to bind LXD to (not including port) [default=all]: all
+Port to bind LXD to [default=8443]: 8443
+Would you like stale cached images to be updated automatically? (yes/no) [default=yes]: yes
+Would you like a YAML "lxd init" preseed to be printed? (yes/no) [default=no]: no
+```
+
+> **Critical:** Answer **yes** to "Would you like the LXD server to be available over the network?" — this is what allows the bot server to connect to this node.
+
+---
+
+### Step 4 — Open Port 8443 on the Remote Node
+
+```bash
+# Using UFW (Ubuntu default firewall)
+sudo ufw allow 8443/tcp
+sudo ufw reload
+sudo ufw status
+
+# Or using iptables directly
+sudo iptables -A INPUT -p tcp --dport 8443 -j ACCEPT
+```
+
+If your server is behind a cloud provider firewall (AWS, GCP, DigitalOcean, Hetzner, etc.), also open port **8443** in the provider's security group / firewall rules panel.
+
+Verify it's reachable from the bot server:
+```bash
+# Run this on the BOT server, not the node
+nc -zv <node-ip> 8443
+# Should say: Connection to <node-ip> 8443 port [tcp/*] succeeded!
+```
+
+---
+
+### Step 5 — Trust the Bot Server on the Node
+
+On the **remote node server**, generate and show the LXD trust certificate token:
+
+```bash
+# LXD 5.x — use tokens (recommended)
+lxc config trust add bot-server --name moonnodes
+```
+
+This outputs a one-time token. Copy it — you'll use it in Step 6.
+
+**Alternative (password-based, older LXD versions):**
+```bash
+lxc config set core.trust_password your-secret-password
+```
+
+---
+
+### Step 6 — Add the Remote Node as an LXD Remote on the Bot Server
+
+On the **bot server** (where `bot.py` runs):
+
+**Token method (LXD 5.x):**
+```bash
+lxc remote add node-sg-1 https://<node-ip>:8443 --token <paste-token-here>
+```
+
+**Password method (older LXD):**
+```bash
+lxc remote add node-sg-1 https://<node-ip>:8443 --accept-certificate
+# Enter the trust password when prompted
+```
+
+**Verify the connection:**
+```bash
+lxc remote list
+# node-sg-1 should appear
+
+lxc list node-sg-1:
+# Should show (empty list) with no errors
+```
+
+> Replace `node-sg-1` with your chosen name. Use the same name when registering in the bot.
+
+---
+
+### Step 7 — Enable Multi-Node in .env
+
+On the bot server, edit your `.env`:
+
+```env
+Multi-Node=True
+```
+
+Then restart the bot:
+```bash
+sudo systemctl restart moonnodes
+# or:
+source venv/bin/activate && python bot.py
+```
+
+---
+
+### Step 8 — Register the Node in the Bot
+
+In Discord, run:
+
+```
+/node create  name:node-sg-1  host:<node-ip>  port:8443
+```
+
+Use the **exact same name** you used in Step 6 when running `lxc remote add`.
+
+The bot will:
+1. Save the node to the database
+2. Attempt to auto-add the LXD remote (if not already added in Step 6)
+3. Report success or any error
+
+Verify it registered correctly:
+```
+/node list
+/node status node_id:2
+```
+
+---
+
+### Step 9 — Create a Storage Pool on the Node (Optional but Recommended)
+
+On the **remote node server**:
+
+```bash
+# Using directory-based pool (simplest)
+lxc storage create vpspool dir source=/var/lib/lxc/vpspool
+
+# Using ZFS (better performance, requires zfs-utils)
+sudo apt install zfsutils-linux -y
+lxc storage create vpspool zfs
+
+# Verify
+lxc storage list
+```
+
+When creating VPS on this node via `/create`, the bot will use the pool configured in the node.
+
+---
+
+### Step 10 — Migrate an Existing VPS to the New Node
+
+If you want to move a VPS from `local` to the new node:
+
+```
+/node migrate  vps_name:vps-username-1  to_node:node-sg-1
+```
+
+The bot will:
+1. Stop the container on the source node
+2. Move it via `lxc move` to the destination node
+3. Start it on the new node
+4. Update the database
+
+---
+
+### Quick Reference — Node Setup Checklist
+
+```
+Remote Node Server:
+  ☐ Ubuntu 20.04+ / Debian 11+ installed
+  ☐ LXD installed via snap
+  ☐ lxd init run with "available over network: YES"
+  ☐ Port 8443 open in UFW
+  ☐ Port 8443 open in cloud firewall (if applicable)
+  ☐ Trust token generated: lxc config trust add bot-server
+
+Bot Server:
+  ☐ lxc remote add <name> https://<ip>:8443 --token <token>
+  ☐ lxc list <name>:  returns without error
+  ☐ Multi-Node=True set in .env
+  ☐ Bot restarted
+
+Discord:
+  ☐ /node create name:<name> host:<ip> port:8443
+  ☐ /node list  shows the new node
+  ☐ /node status  shows live stats for the new node
+```
+
+---
+
+### Troubleshooting Nodes
+
+**`connection refused` when adding remote**
+Port 8443 is not open. Check UFW and cloud firewall rules on the node server.
+
+**`certificate verify failed`**
+Use `--accept-certificate` flag:
+```bash
+lxc remote add node-sg-1 https://<ip>:8443 --accept-certificate
+```
+
+**`authentication failure`**
+The trust password or token was wrong or expired. Generate a new token on the node:
+```bash
+lxc config trust add bot-server --name moonnodes
+```
+
+**Node shows as offline in `/node status`**
+- Check LXD is running on the node: `sudo snap services lxd`
+- Restart LXD if needed: `sudo snap restart lxd`
+- Check the bot server can still reach port 8443: `nc -zv <ip> 8443`
+
+**`lxc move` fails during migration**
+Both nodes must be able to reach each other directly (not just from the bot server). Check network connectivity between nodes:
+```bash
+# On node 1, try to reach node 2
+nc -zv <node2-ip> 8443
+```
 
 ---
 
