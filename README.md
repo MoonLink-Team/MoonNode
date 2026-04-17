@@ -49,8 +49,8 @@ lxc --version       # Confirm install
 ### Step 4 — Install Git & clone the bot
 ```bash
 sudo apt install git -y
-git clone https://github.com/yourrepo/moonnodes.git
-cd moonnodes
+git clone https://github.com/MoonLink-Team/MoonNode
+cd MoonNode
 ```
 
 ### Step 5 — Create a virtual environment
