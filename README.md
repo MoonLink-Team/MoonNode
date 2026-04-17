@@ -1,86 +1,84 @@
-# 🌙 MoonNodes VPS Manager — Full Setup & Command Guide
+<p align="center">
+  <h1 align="center">🌙 MoonNodes VPS Manager</h1>
+  <p align="center">A Discord bot for managing LXC/LXD VPS instances — deploy, control, and monitor virtual servers directly from Discord slash commands.</p>
+</p>
 
 ---
 
-## 📋 TABLE OF CONTENTS
-1. [System Requirements](#system-requirements)
-2. [Server Setup (Bash)](#server-setup)
-3. [Bot Installation](#bot-installation)
-4. [Environment Configuration (.env)](#environment-configuration)
-5. [Running the Bot](#running-the-bot)
-6. [First-Time Discord Setup](#first-time-discord-setup)
-7. [All Slash Commands](#all-slash-commands)
-8. [Feature Flags Reference](#feature-flags-reference)
+## Table of Contents
+1. [Prerequisites](#prerequisites)
+2. [Server Setup](#server-setup)
+3. [Bot Setup on Discord Developer Portal](#bot-setup-on-discord-developer-portal)
+4. [Installation](#installation)
+5. [Configuration (.env)](#configuration-env)
+6. [Running the Bot](#running-the-bot)
+7. [First-Time Discord Setup](#first-time-discord-setup)
+8. [All Commands](#all-commands)
+9. [Extensions](#extensions)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 1. System Requirements
+## Prerequisites
 
-| Requirement | Minimum |
+| Requirement | Version |
 |---|---|
 | OS | Ubuntu 20.04+ / Debian 11+ |
 | Python | 3.10+ |
-| LXC | 4.0+ |
-| RAM | 2GB+ (host) |
-| Storage | 20GB+ |
-| Discord.py | 2.3+ |
+| LXD | 5.0+ |
+| discord.py | 2.3+ |
+| RAM (host) | 2 GB minimum |
+| Storage | 20 GB minimum |
 
 ---
 
-## 2. Server Setup (Bash)
+## Server Setup
 
-### Step 1 — Update the system
+### 1 — Update system
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-### Step 2 — Install Python & pip
+### 2 — Install Python and pip
 ```bash
-sudo apt install python3 python3-pip python3-venv -y
-python3 --version   # Should be 3.10+
+sudo apt install python3 python3-pip python3-venv git -y
+python3 --version    # must be 3.10 or higher
 ```
 
-### Step 3 — Install LXC
+### 3 — Install and initialize LXD
 ```bash
-sudo apt install lxc lxc-utils -y
-lxc --version       # Confirm install
+sudo apt install snapd -y
+sudo snap install lxd
+sudo lxd init --auto
+# Verify:
+lxc --version
+lxc list
 ```
 
-### Step 4 — Install Git & clone the bot
+### 4 — (Optional) Create a dedicated storage pool
 ```bash
-sudo apt install git -y
-git clone https://github.com/MoonLink-Team/MoonNode
-cd MoonNode
+lxc storage create vpspool dir source=/var/lib/lxc/vpspool
+lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 ```
 
-### Step 5 — Create a virtual environment
+### 5 — Clone the project
+```bash
+git clone https://github.com/yourrepo/moonnodes.git
+cd moonnodes
+```
+
+### 6 — Create virtual environment and install dependencies
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-```
-
-### Step 6 — Install Python dependencies
-```bash
 pip install discord.py python-dotenv
 ```
 
-### Step 7 — Verify LXC storage pool
-```bash
-lxc storage list
-# Note the pool name — you'll use it in .env as DEFAULT_STORAGE_POOL
-```
-
-### Step 8 — (Optional) Create a dedicated LXC storage pool
-```bash
-lxc storage create vpspool dir source=/var/lib/lxc/vpspool
-lxc storage list   # Confirm it appears
-```
-
-### Step 9 — (Optional) Run as a systemd service
+### 7 — (Optional) Run as a systemd service
 ```bash
 sudo nano /etc/systemd/system/moonnodes.service
 ```
-Paste this into the file:
+Paste:
 ```ini
 [Unit]
 Description=MoonNodes VPS Discord Bot
@@ -97,107 +95,101 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 ```
-Then enable and start it:
+Enable:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable moonnodes
 sudo systemctl start moonnodes
-sudo systemctl status moonnodes   # Should say "active (running)"
+sudo systemctl status moonnodes    # should say "active (running)"
 ```
 
-### Useful systemd commands
+Useful service commands:
 ```bash
-sudo systemctl stop moonnodes          # Stop the bot
-sudo systemctl restart moonnodes       # Restart the bot
-sudo journalctl -u moonnodes -f        # Live logs
-sudo journalctl -u moonnodes -n 100    # Last 100 log lines
+sudo systemctl restart moonnodes        # restart the bot
+sudo systemctl stop moonnodes           # stop the bot
+sudo journalctl -u moonnodes -f         # live logs
+sudo journalctl -u moonnodes -n 100     # last 100 lines
 ```
 
 ---
 
-## 3. Bot Installation
+## Bot Setup on Discord Developer Portal
 
-### Create a Discord Application
-1. Go to https://discord.com/developers/applications
+1. Go to **https://discord.com/developers/applications**
 2. Click **New Application** → give it a name
-3. Go to **Bot** tab → click **Add Bot**
+3. Go to **Bot** tab → **Add Bot**
 4. Under **Privileged Gateway Intents**, enable:
-   - **Server Members Intent**
-   - **Message Content Intent**
-5. Copy your **Bot Token** (you'll need this for `.env`)
+   - ✅ Server Members Intent
+   - ✅ Message Content Intent
+5. Copy your **Bot Token** (used in `.env`)
 6. Go to **OAuth2 → URL Generator**:
-   - Scopes: `bot`, `applications.commands`
+   - Scopes: `bot` + `applications.commands`
    - Bot Permissions: `Administrator`
-7. Copy the generated URL and open it to invite the bot to your server
+7. Open the generated URL and invite the bot to your server
 
 ---
 
-## 4. Environment Configuration (.env)
-
-Create a `.env` file in the project root:
+## Installation
 
 ```bash
-nano .env
+cp .env.example .env
+nano .env    # fill in the values below
 ```
 
-Paste and fill in:
+---
+
+## Configuration (.env)
 
 ```env
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # REQUIRED
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 DISCORD_TOKEN=your_bot_token_here
-BOT_OWNER_ID=your_discord_user_id_here
+BOT_OWNER_ID=your_discord_user_id_here     # right-click yourself → Copy User ID
 
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # APPEARANCE
-# ───────────────────────────────────────────────
-BOT_COLOR=5865F2           # Hex color for embeds (no #)
+# ─────────────────────────────────────────────────────────────
+BOT_COLOR=5865F2                            # Hex embed colour (no #)
 
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # LXC / VPS
-# ───────────────────────────────────────────────
-VPS_PREFIX=vps             # Prefix for container names (e.g. vps-username-1)
-DEFAULT_STORAGE_POOL=      # LXC pool name from: lxc storage list
-VPS_USER_ROLE_ID=0         # Discord role ID to grant after VPS creation (0 = disabled)
+# ─────────────────────────────────────────────────────────────
+VPS_PREFIX=vps                              # Prefix for container names
+DEFAULT_STORAGE_POOL=default                # LXD pool name  (lxc storage list)
+VPS_USER_ROLE_ID=0                          # Discord role ID granted after VPS creation
 
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # RESOURCE LIMITS
-# ───────────────────────────────────────────────
-MAX_RAM_GB=16              # Max RAM a single VPS can have
-MAX_CPU_CORES=8            # Max CPU cores a single VPS can have
-CPU_THRESHOLD=90           # % CPU usage to trigger alert
-RAM_THRESHOLD=90           # % RAM usage to trigger alert
-ENFORCE_RESOURCE_LIMITS=True
+# ─────────────────────────────────────────────────────────────
+MAX_RAM_GB=16
+MAX_CPU_CORES=8
+CPU_THRESHOLD=90                            # % usage that triggers a log warning
+RAM_THRESHOLD=90
 
-# ───────────────────────────────────────────────
-# CLAIMS
-# ───────────────────────────────────────────────
-PLANS=True                 # Enable /plans command
-CLAIM_PREMIUM=True         # Allow premium VPS claims
-CLAIM_FREE=True            # Allow free VPS claims
+# ─────────────────────────────────────────────────────────────
+# PLANS
+# ─────────────────────────────────────────────────────────────
+PLANS=True
+CLAIM_PREMIUM=True
+CLAIM_FREE=True
 
-# ───────────────────────────────────────────────
-# FEATURE FLAGS (True / False)
-# ───────────────────────────────────────────────
-SOSB=False         # Scheduled automated backups (runs every 24h)
-AES=False          # Auto-expire & suspend VPS on expiry date
-RR=False           # Renewal reminder DMs (3 days before expiry)
-ABEI=False         # Economy/credit system
-RA=False           # Referral affiliate tracking
-CPCS=False         # Promo code system
-UBL_ENABLED=False  # Enforce per-plan backup limits
-BACKUP_LIMIT=1     # Default backup limit (if UBL_ENABLED=True)
-ASM=False          # Advanced server monitoring
-Multi-Node=False   # Multi-node LXC cluster support
-ISTS=False         # Instant server template system
-MSTC=False         # Multi-server ticket channel
-PUDC=False         # Per-user disk cap
-A2FA=False         # Admin 2-Factor Authentication PIN
+# ─────────────────────────────────────────────────────────────
+# EXTENSIONS  (True / False)
+# ─────────────────────────────────────────────────────────────
+SOSB=False          # Scheduled Backups
+ISTS=False          # Ticket System (support tickets)
+AES=False           # Auto Expire & Suspend
+RR=False            # Renewal Reminders
+A2FA=False          # Admin 2-Factor PIN
+MSTC=False          # Multi-Server Ticket Channels
+UBL_ENABLED=False   # Backup Limits
+BACKUP_LIMIT=1      # Default per-VPS backup cap
+Multi-Node=False    # Multi-node LXD cluster
 
-# ───────────────────────────────────────────────
-# CLOUDFLARE (optional — for subdomain automation)
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# CLOUDFLARE  (optional — automatic subdomain creation)
+# ─────────────────────────────────────────────────────────────
 CF_API_TOKEN=
 CF_ZONE_ID=
 CF_DOMAIN=yourdomain.com
@@ -206,7 +198,7 @@ HOST_PUBLIC_IP=
 
 ---
 
-## 5. Running the Bot
+## Running the Bot
 
 ### Manually
 ```bash
@@ -214,306 +206,296 @@ source venv/bin/activate
 python bot.py
 ```
 
-### With systemd (recommended)
+### With systemd
 ```bash
 sudo systemctl start moonnodes
 ```
 
-### Check logs
-```bash
-# Systemd logs
-sudo journalctl -u moonnodes -f
-
-# Or run directly and watch terminal output
-python bot.py
-```
+On startup the bot will:
+- Initialize the SQLite database (`moonnodes.db`)
+- Load all command cogs
+- Sync slash commands globally with Discord (takes up to 1 hour to appear everywhere, instant in your server if you use guild sync)
 
 ---
 
-## 6. First-Time Discord Setup
+## First-Time Discord Setup
 
-After the bot is online in your server, run these slash commands **as the Bot Owner**:
+Run these as the **Bot Owner** after the bot is online:
 
-### Set channels
+### 1. Set channels
 ```
 /set setting:Log Channel       value:<channel_id>
-/set setting:Payment Channel   value:<channel_id>
 /set setting:Ticket Channel    value:<channel_id>
+/set setting:Payment Channel   value:<channel_id>
 ```
 
-### Set resource alert thresholds
+### 2. Set resource alert thresholds
 ```
 /set setting:CPU Threshold %   value:90
 /set setting:RAM Threshold %   value:90
 ```
 
-### Add staff roles
+### 3. Add staff
 ```
-/admin action:Add permission:Owner  user:@yourself
-/admin action:Add permission:Admin  user:@youradmin
-/admin action:Add permission:Mod    user:@yourmod
-```
-
-### Add payment methods
-```
-/payment action:Add/Edit  payment_name:GCash    image:(attach QR image)
-/payment action:Add/Edit  payment_name:PayPal   image:(attach QR image)
+/role action:Add permission:Owner  user:@yourself
+/role action:Add permission:Admin  user:@youradmin
 ```
 
-### Add VPS plans
+### 4. Add payment methods
+```
+/payment action:Add/Edit  payment_name:GCash   image:(attach QR screenshot)
+/payment action:Add/Edit  payment_name:PayPal  image:(attach QR screenshot)
+```
+
+### 5. Add plans
 ```
 # Free plans
-/plans plan_type:Free    action:Add (Admin)  plan_name:basic     ram_gb:1  cpu_cores:1  disk_gb:10  price:Free
-/plans plan_type:Free    action:Add (Admin)  plan_name:invite4   ram_gb:2  cpu_cores:1  disk_gb:15  price:invite 4
+/plans plan_type:Free  action:Add (Admin)  plan_name:basic    ram_gb:1  cpu_cores:1  disk_gb:10   price:Free
+/plans plan_type:Free  action:Add (Admin)  plan_name:invite4  ram_gb:2  cpu_cores:1  disk_gb:15   price:invite 4
 
 # Premium plans
-/plans plan_type:Premium action:Add (Admin)  plan_name:starter   ram_gb:2  cpu_cores:2  disk_gb:20  price:₱150   validity:30 Days
-/plans plan_type:Premium action:Add (Admin)  plan_name:pro       ram_gb:4  cpu_cores:4  disk_gb:40  price:₱300   validity:30 Days
-/plans plan_type:Premium action:Add (Admin)  plan_name:ultimate  ram_gb:8  cpu_cores:8  disk_gb:80  price:₱500   validity:30 Days
+/plans plan_type:Premium  action:Add (Admin)  plan_name:starter   ram_gb:2  cpu_cores:2  disk_gb:20  price:₱150  validity:30 Days
+/plans plan_type:Premium  action:Add (Admin)  plan_name:pro        ram_gb:4  cpu_cores:4  disk_gb:40  price:₱300  validity:30 Days
+/plans plan_type:Premium  action:Add (Admin)  plan_name:ultimate   ram_gb:8  cpu_cores:8  disk_gb:80  price:₱500  validity:30 Days
+```
+
+### 6. (Optional) Register additional nodes
+```
+/node create name:node-us-1 host:192.168.1.10 port:8443
+/node list
 ```
 
 ---
 
-## 7. All Slash Commands
+## All Commands
 
----
+### 👤 User Commands
 
-### 👤 USER COMMANDS
-
-#### `/help`
-Shows all available commands.
-
----
-
-#### `/list`
-View all your active VPS instances — shows status, config, OS, node, and expiry.
-
----
-
-#### `/manage`
-Open the VPS control panel (start, stop, restart, rebuild, console, etc.)
-
-| Option | Description |
+| Command | Description |
 |---|---|
-| `user` | (Admin only) Manage another user's VPS |
+| `/help` | Show all available commands |
+| `/list` | View all your active VPS instances (status, specs, OS, expiry) |
+| `/manage` | Open the VPS control panel. Tabs: **My VPS** and **Shared VPS** |
+| `/backup action: vps_number:` | Create a snapshot, list backups, or restore the latest backup |
+| `/share` | Grant another Discord user access to your VPS |
+| `/plans` | Browse Free & Premium VPS plans with specs and pricing |
+| `/claim` | Claim a plan by name or redeem a promo code |
+| `/transfer` | Sell or gift your VPS to another user |
+| `/upgrade` | Upgrade your VPS plan using credits |
+| `/support vps_number: issue:` | Open a private support thread for a specific VPS |
+| `/status` | View live CPU, RAM, and disk usage of the host node |
+| `/affiliate` | View referral credits or transfer credits to another user |
 
 ---
 
-#### `/manage-shared`
-Manage a VPS that another user shared with you.
+### /manage — Control Panel Detail
 
-| Option | Description |
+When you run `/manage` (no arguments), you see two tabs:
+
+**🖥️ My VPS** — Manage your own VPS instances.
+Actions available:
+- ▶️ **Start** — Boot the container
+- ⏸️ **Stop** — Gracefully stop the container
+- 🔄 **Reinstall OS** — Wipe and reinstall from scratch (confirmation required)
+- 🔑 **Web SSH** — Generate a tmate SSH link sent to your DMs
+- 💻 **Console Logs** — View the last 15 lines of system logs
+- 💿 **Install Software** — One-click installer for Docker, Node.js, Nginx, Python, Java, Minecraft, Rust, CS2, FiveM, and more
+- 🔄 **Refresh Stats** — Refresh live CPU / RAM / Disk stats
+
+**🤝 Shared VPS** — Manage VPS that other users have shared with you.
+(Start, Stop, Web SSH, Console, Software Install — no Reinstall)
+
+Admins can also run `/manage user:@someone` to manage any user's VPS.
+
+---
+
+### 🛡️ Admin / Owner Commands
+
+| Command | Description |
 |---|---|
-| `owner` | The VPS owner (Discord member) |
-| `vps_number` | Which VPS (1, 2, 3…) |
+| `/role action: permission: user:` | Assign or remove staff roles (Owner / Admin / Mod / Dev) |
+| `/set setting: value: [option:] [date:] [time:]` | Configure channels, thresholds, backup schedules |
+| `/payment action: payment_name: [image:]` | Add, edit, remove, or list payment methods |
+| `/create user: plan_name: plan_type:` | Deploy a new VPS (select node → select OS) |
+| `/delete user: vps_number: [reason:]` | Permanently delete a VPS container |
+| `/vps action: container_name: [reason:]` | Suspend or unsuspend a VPS |
+| `/list-all` | View all VPS across every user and node |
+| `/giveaway action:` | Start, cancel, or list active giveaways |
+| `/affiliate` | View, add, or remove referral credits for any user |
+| `/system-admin action:` | Extension toggles, maintenance mode, DB clean, A2FA |
+| `/lxc-list [node_id]` | List raw LXC containers on a node |
 
 ---
 
-#### `/backup`
-Create or restore a VPS snapshot.
+### 🌐 Node Management (`/node`)
 
-| Option | Values |
+| Command | Description |
 |---|---|
-| `action` | Create Backup / List Backups / Restore Latest |
-| `vps_number` | Which VPS (default: 1) |
+| `/node list` | List all registered nodes with host/port |
+| `/node status [node_id]` | Live CPU / RAM / Disk stats per node (blank = all nodes) |
+| `/node create name: host: [port:]` | Register a new LXD remote and auto-configure the remote |
+| `/node edit node_id: [new_name:] [new_host:] [new_port:]` | Update node connection details |
+| `/node delete node_id:` | Remove a node (only if no VPS are on it) |
+| `/node migrate vps_name: to_node:` | Live-migrate a VPS container to another node |
+| `/lxc-list [node_id]` | Show raw `lxc list` output for any registered node |
 
 ---
 
-#### `/share`
-Grant another Discord user access to your VPS.
+### ⚙️ /set Settings Reference
 
-| Option | Description |
-|---|---|
-| `user` | Discord member to share with |
-| `vps_number` | Which VPS (default: 1) |
-
----
-
-#### `/plans`
-Browse or manage VPS plans.
-
-| Option | Values |
-|---|---|
-| `plan_type` | Premium / Free |
-| `action` | List / Add (Admin) / Edit (Admin) / Remove (Admin) |
-| `plan_name` | e.g. basic, pro, starter |
-| `ram_gb` | RAM in GB |
-| `cpu_cores` | CPU cores |
-| `disk_gb` | Disk in GB |
-| `price` | e.g. ₱150 or `invite 4` |
-| `validity` | e.g. `30 Days` |
-| `emoji` | Emoji icon for the plan |
-
----
-
-#### `/claim`
-Claim a VPS or redeem a promo code.
-
-| Option | Values |
-|---|---|
-| `claim_type` | Premium / Free / Promo Code |
-| `code_or_plan` | Plan name (e.g. basic) or promo code |
-| `proof` | Payment screenshot (required for Premium) |
-
----
-
-#### `/affiliate`
-View your referral credits or transfer credits to another user.
-
-| Option | Description |
-|---|---|
-| `target_user` | User to view or transfer to |
-| `transfer_amount` | Amount of credits |
-| `admin_action` | (Admin only) Add Credits / Remove Credits |
-
----
-
-#### `/transfer`
-Sell or gift your VPS to another user.
-
-| Option | Description |
-|---|---|
-| `user` | Recipient |
-| `vps_number` | Which VPS (default: 1) |
-
----
-
-#### `/upgrade`
-Upgrade your VPS plan using credits.
-
-| Option | Description |
-|---|---|
-| `vps_number` | Which VPS (default: 1) |
-| `plan_name` | Target plan name |
-
----
-
-#### `/support`
-Open a support ticket.
-
----
-
-#### `/status`
-View live host node resource stats (CPU, RAM, disk).
-
----
-
-### 🛡️ ADMIN / OWNER COMMANDS
-
-#### `/admin`
-Assign or remove staff roles. (Owner only)
-
-| Option | Values |
-|---|---|
-| `action` | Add / Remove / List |
-| `permission` | Owner Level / Admin Level / Mod Level / Dev Level |
-| `user` | Target Discord member |
-
----
-
-#### `/set`
-Configure bot settings.
-
-| Option | Values |
-|---|---|
-| `setting` | Log Channel / Payment Channel / Ticket Channel / CPU Threshold % / RAM Threshold % |
-| `value` | Channel ID or number |
-
----
-
-#### `/payment`
-Manage payment methods shown in `/plans`.
-
-| Option | Values |
-|---|---|
-| `action` | Add/Edit / Remove / List |
-| `payment_name` | Name of the method (e.g. GCash) |
-| `image` | QR code or payment image |
-
----
-
-#### `/create`
-Deploy a new VPS for a user. (Walks through Node → OS selection UI)
-
-| Option | Description |
-|---|---|
-| `user` | Target Discord member |
-| `plan_name` | Plan to deploy (e.g. starter) |
-| `plan_type` | Premium or Free |
-
----
-
-#### `/delete`
-Permanently delete a user's VPS container.
-
-| Option | Description |
-|---|---|
-| `user` | VPS owner |
-| `vps_number` | Which VPS (1, 2…) |
-| `reason` | Reason for deletion |
-
----
-
-#### `/vps`
-Suspend or unsuspend a VPS. (Admin)
-
-| Option | Values |
-|---|---|
-| `action` | Suspend VPS / Unsuspend VPS |
-| `container_name` | Exact container name |
-| `reason` | Reason |
-
----
-
-#### `/giveaway`
-Start or manage a VPS giveaway.
-
-| Option | Values |
-|---|---|
-| `action` | Create / Cancel / List |
-| (additional options per action) | Plan, duration, winners, etc. |
-
----
-
-#### `/nodes`
-View multi-node cluster status with live CPU, RAM, and disk usage per node.
-
----
-
-#### `/list-all`
-View all VPS instances across all users and nodes.
-
----
-
-#### `/system-admin`
-System-level toggles, tools, and maintenance. (Owner only)
-
-| Option | Values |
-|---|---|
-| `action` | Extension Toggle / Maintenance Mode / Migrate VPS / Clean DB / View Extensions / A2FA Management |
-| `extension` | asm / multi_node / sosb / abei / ists / aes / rr / ra / a2fa / cpcs / mstc / pudc / ubl |
-| `ext_state` | Enable / Disable |
-| `vps_name` | Container name (for Migrate) |
-| `target_node` | Destination node (for Migrate) |
-| `a2fa_action` | Edit PIN / Remove PIN |
-| `new_pin` | 4-digit PIN |
-
----
-
-## 8. Feature Flags Reference
-
-| Flag | .env Key | What it does |
+| Setting | Value Format | Description |
 |---|---|---|
-| Scheduled Backups | `SOSB=True` | Auto-snapshot all VPS every 24h |
-| Auto Expire & Suspend | `AES=True` | Stop VPS when expiry date passes |
-| Renewal Reminders | `RR=True` | DM users 3 days before expiry |
-| Economy / Credits | `ABEI=True` | Enable credit balance system |
-| Referral Affiliate | `RA=True` | Track referrals, earn credits |
-| Promo Codes | `CPCS=True` | Enable `/claim` promo code redemption |
-| Backup Limits | `UBL_ENABLED=True` | Cap backups per plan tier |
-| Multi-Node | `Multi-Node=True` | Enable multi-LXC-node cluster |
-| Admin 2FA PIN | `A2FA=True` | Require PIN for sensitive admin actions |
+| `Log Channel` | Channel ID | Where bot activity logs are sent |
+| `Payment Channel` | Channel ID | Where payment proof screenshots go |
+| `Ticket Channel` | Channel ID | Where support threads are created |
+| `CPU Threshold %` | Number (0–100) | CPU % that triggers a warning log |
+| `RAM Threshold %` | Number (0–100) | RAM % that triggers a warning log |
+| `Backup Limits` | `enable` / `disable` / number | Max snapshots per VPS (requires Backup Limits extension) |
+| `Scheduled Backups` | `enable` / `disable` | Toggle scheduled auto-snapshots |
+
+For `Backup Limits` and `Scheduled Backups` you can also pass:
+- `option:` — frequency or per-plan cap (e.g. `daily`, `weekly`, `3`)
+- `date:` — start date in `1/12/2025` format
+- `time:` — run time in `12:00AM` format
+
+Example:
+```
+/set setting:Scheduled Backups  value:enable  option:daily  date:1/1/2025  time:2:00AM
+```
 
 ---
 
-*MoonNodes VPS Manager — Bot Guide*
+### ⚙️ /system-admin Actions Reference
+
+| Action | Description |
+|---|---|
+| `Extension Toggle` | Enable or disable an extension at runtime |
+| `Maintenance Mode` | Toggle maintenance mode (bot shows "Under Maintenance" status) |
+| `View Extensions` | See all extensions and their current On/Off state |
+| `Clean DB` | Remove stale/empty entries from the VPS database |
+| `A2FA Management` | Set or remove your admin 2-Factor PIN |
+
+---
+
+## Extensions
+
+Extensions are optional features you can toggle on/off from `/system-admin action:Extension Toggle` or by setting them in `.env`.
+
+| Extension | .env Key | What it does |
+|---|---|---|
+| **Multi-Node Support** | `Multi-Node=True` | Enables multi-server LXD cluster. Register additional nodes with `/node create`. VPS can be created on or migrated to any node. |
+| **Scheduled Backups** | `SOSB=True` | Automatically snapshots all running VPS every 24 hours. Schedule the time with `/set setting:Scheduled Backups`. |
+| **Ticket System** | `ISTS=True` | Enables `/support` to open private Discord threads for VPS issues. Requires a Ticket Channel set via `/set`. |
+| **Auto Expire & Suspend** | `AES=True` | Automatically stops a VPS when its expiry date passes. Notifies the owner by DM. |
+| **Renewal Reminders** | `RR=True` | Sends a DM to the VPS owner 3 days before their VPS expires, reminding them to renew. |
+| **Admin 2FA** | `A2FA=True` | Requires a 4-digit PIN for sensitive admin actions. Set your PIN with `/system-admin action:A2FA Management`. |
+| **Multi-Server Tickets** | `MSTC=True` | Allows support tickets to be routed to different channels per server (for multi-guild setups). |
+| **Backup Limits** | `UBL_ENABLED=True` | Enforces a maximum number of snapshots per VPS. Configure the cap with `/set setting:Backup Limits`. |
+
+---
+
+## Troubleshooting
+
+### Slash commands not appearing
+Discord can take up to 1 hour to propagate global slash commands. During development, use guild-specific sync:
+```python
+# In bot.py setup_hook, change:
+synced = await self.tree.sync()
+# To (replace YOUR_GUILD_ID):
+guild = discord.Object(id=YOUR_GUILD_ID)
+self.tree.copy_global_to(guild=guild)
+synced = await self.tree.sync(guild=guild)
+```
+
+### "LXC command not found" on startup
+```bash
+sudo snap install lxd
+sudo lxd init --auto
+# Add your user to the lxd group:
+sudo usermod -aG lxd $USER
+newgrp lxd
+```
+
+### Web SSH (tmate) not working
+The VPS needs internet access. Check:
+```bash
+lxc exec <container> -- ping -c 3 8.8.8.8
+```
+If it fails, check the host network bridge configuration:
+```bash
+lxc network list
+lxc network show lxdbr0
+```
+
+### Bot token invalid
+Regenerate your token in the Discord Developer Portal under **Bot → Reset Token** and update `.env`.
+
+### Database errors
+```bash
+# Backup current DB
+cp moonnodes.db moonnodes.db.bak
+# Clean stale entries via Discord:
+/system-admin action:Clean DB
+```
+
+### VPS stuck in "stopping"
+```bash
+lxc stop <container> --force
+```
+
+---
+
+## File Structure
+
+```
+moonnodes/
+├── bot.py                    # Entry point — loads cogs, starts tasks
+├── .env                      # Your configuration (never commit this)
+├── moonnodes.db              # SQLite database (auto-created)
+├── core/
+│   ├── config.py             # Loads all .env settings
+│   ├── database.py           # DB helpers (init, load, save, queries)
+│   ├── lxc.py                # LXC/LXD command wrappers and node stats
+│   ├── monitoring.py         # Background resource monitor thread
+│   ├── theme.py              # Embed factories and visual helpers
+│   └── __init__.py           # Detects active storage pool on import
+├── commands/
+│   ├── Owner/                # Bot Owner commands
+│   │   ├── admin.py          # /role
+│   │   ├── create.py         # /create
+│   │   ├── delete.py         # /delete
+│   │   ├── giveaway.py       # /giveaway
+│   │   ├── list_all.py       # /list-all
+│   │   ├── nodes.py          # /node group + /lxc-list
+│   │   └── system_admin.py   # /system-admin
+│   ├── Admin/
+│   │   ├── set_cmd.py        # /set + /payment
+│   │   └── vps.py            # /vps
+│   └── User/
+│       ├── help.py           # /help
+│       ├── list_cmd.py       # /list
+│       ├── manage.py         # /manage (My VPS + Shared VPS tabs)
+│       ├── plans.py          # /plans
+│       ├── claim.py          # /claim
+│       ├── backup.py         # /backup
+│       ├── share.py          # /share
+│       ├── affiliate.py      # /affiliate
+│       ├── support.py        # /support
+│       ├── status.py         # /status
+│       ├── transfer.py       # /transfer
+│       └── upgrade.py        # /upgrade
+├── ui/
+│   ├── manage_view.py        # ManageView interactive buttons
+│   ├── os_select.py          # OS selection dropdown for /create
+│   ├── node_select.py        # Node selection dropdown
+│   ├── plans_view.py         # Plans embed UI
+│   ├── software_view.py      # One-click software installer
+│   └── confirm_view.py       # Generic confirm/cancel dialog
+└── feature/
+    ├── plans/                # Plan data management
+    └── codes/                # Promo code management
+```
+
+---
+
+*MoonNodes VPS Manager — Discord LXC/LXD VPS management bot*
