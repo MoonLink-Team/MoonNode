@@ -64,17 +64,17 @@ lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 
 ### 5 — Clone the project
 ```bash
-git clone https://github.com/MoonLink-Team/MoonNode
-cd MoonNode
-apt install zip
-unzip dev.zip
+git clone https://github.com/yourrepo/moonnodes.git
+cd moonnodes
 ```
 
 ### 6 — Create virtual environment and install dependencies
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install discord.py python-dotenv
+pip install -r requirements.txt
+# or manually:
+pip install discord.py python-dotenv aiohttp
 ```
 
 ### 7 — (Optional) Run as a systemd service
@@ -189,6 +189,13 @@ MSTC=False          # Multi-Server Ticket Channels
 UBL_ENABLED=False   # Backup Limits
 BACKUP_LIMIT=1      # Default per-VPS backup cap
 Multi-Node=False    # Multi-node LXD cluster
+
+# ─────────────────────────────────────────────────────────────
+# NEW FEATURES
+# ─────────────────────────────────────────────────────────────
+MARKETPLACE=True        # Enable /marketplace command
+ACCOUNT=True            # Enable /account and MoonCoin system
+MAIN_CHAT_ID=0          # Channel ID where chat gives +1 coin (0 = disabled)
 
 # ─────────────────────────────────────────────────────────────
 # CLOUDFLARE  (optional — automatic subdomain creation)
@@ -432,7 +439,49 @@ The remote node does **not** need Python or the bot code. It only needs LXD runn
 
 ---
 
-### Step 2 — Install LXD on the Remote Node
+### Step 2 — Install Incus or LXD on the Remote Node
+
+You can use either **Incus** (recommended) or **LXD**. The bot auto-detects which one is installed — you don't need to configure anything.
+
+### Step 2a — Install via Incus (Recommended — Zabbly repo)
+
+Incus is the modern successor to LXD. The bot detects it automatically.
+
+```bash
+# 1. Install dependencies
+sudo apt update
+sudo apt install curl -y
+sudo mkdir -p /etc/apt/keyrings/
+
+# 2. Add Zabbly repository key
+curl -fsSL https://pkgs.zabbly.com/key.asc | sudo tee /etc/apt/keyrings/zabbly.asc > /dev/null
+
+# 3. Register the Incus stable repo
+echo "deb [signed-by=/etc/apt/keyrings/zabbly.asc] https://pkgs.zabbly.com/incus/stable $(. /etc/os-release && echo ${VERSION_CODENAME}) main" | \
+  sudo tee /etc/apt/sources.list.d/zabbly-incus-stable.list
+
+# 4. Install Incus
+sudo apt update
+sudo apt install incus -y
+
+# 5. Initialize
+sudo incus admin init --auto
+
+# 6. (Optional) run without sudo
+sudo usermod -aG incus-admin $USER
+newgrp incus-admin
+
+# 7. Verify
+incus list
+```
+
+> Use `incus` everywhere you'd normally type `lxc`. The bot handles this automatically.
+
+---
+
+### Step 2b — Install via LXD / Snap (Alternative)
+
+
 
 SSH into the remote server and run:
 
@@ -688,6 +737,80 @@ nc -zv <node2-ip> 8443
 
 ---
 
+
+---
+
+## Marketplace & MoonCoin System
+
+### /marketplace
+
+The marketplace lets users sell their VPS instances to each other using MoonCoins, Invites, or Real Money.
+
+Enable it in `.env`:
+```env
+MARKETPLACE=True
+```
+
+Or toggle at runtime:
+```
+/set setting:Marketplace value:enable
+```
+
+| Action | Command | Description |
+|---|---|---|
+| Browse | `/marketplace pick_one:List` | See all active VPS listings |
+| Sell | `/marketplace pick_one:Sell sell_name: vps_number: price: price_type:` | List your VPS for sale |
+| Buy | `/marketplace pick_one:Buy sell_name: user:` | Purchase a listing |
+| Edit | `/marketplace pick_one:Edit sell_name: new_price: new_name:` | Update your listing |
+| Remove | `/marketplace pick_one:Remove sell_name:` | Remove your listing |
+| Payment | `/marketplace pick_one:Payment pay_action: payment_name: image:` | Admin: manage payment methods |
+
+**Price types:** `coin` (🌙 MoonCoins) · `inv` (📨 Invites) · `real` (💵 Real Money)
+
+Real Money purchases open a support ticket flow for admin-assisted transfer.
+
+---
+
+### /account — MoonCoin System
+
+MoonCoin (🌙) is the in-server currency used to claim free VPS plans and buy marketplace listings.
+
+Enable it in `.env`:
+```env
+ACCOUNT=True
+MAIN_CHAT_ID=<your-main-channel-id>   # channel that gives +1 coin per message
+```
+
+**Earning MoonCoins:**
+
+| Action | Reward | Notes |
+|---|---|---|
+| Invite someone to the server | +5 coins | Tracked via Discord invite API |
+| Chat in the main channel | +1 coin | 5 minute cooldown per user |
+| Join a giveaway | +3 coins | Awarded when giveaway is joined |
+| Join an event | +7 coins | Awarded when event is joined |
+| Have VIP role | +1% multiplier | Applied to all coin earnings |
+| 1st server boost | +2% multiplier | Permanent for that account |
+| 2nd server boost | +3% multiplier | Stacks with first boost |
+
+**Commands:**
+
+| Command | Description |
+|---|---|
+| `/account` | View your own balance and stats |
+| `/account target_user:@user` | View another user's account |
+| `/account admin_action:Add Coins transfer_amount:500 target_user:@user` | Admin: give coins |
+| `/account admin_action:Remove Coins transfer_amount:100 target_user:@user` | Admin: remove coins |
+| `/account admin_action:Transfer Coins transfer_amount:200 target_user:@from transfer_to:@to` | Admin: move coins between users |
+| `/account admin_action:Reset Account target_user:@user` | Admin: reset balance to zero |
+
+**Spending MoonCoins:**
+- `/claim claim_type:Free option:coin code_or_plan:basic` — claim a free VPS plan
+- `/marketplace pick_one:Buy` — purchase a VPS listing from another user
+
+
+---
+
 ## Troubleshooting
 
 ### Slash commands not appearing
@@ -793,3 +916,52 @@ moonnodes/
 ---
 
 *MoonNodes VPS Manager — Discord LXC/LXD VPS management bot*
+
+---
+
+## Changelog — Latest Updates
+
+### Bug Fixes
+- ✅ **`requirements.txt` created** — install with `pip install -r requirements.txt`
+- ✅ **`/node` CommandAlreadyRegistered** — fixed duplicate tree registration
+- ✅ **`/help` field too long (50035)** — all embed fields now auto-truncate at 1024 chars; `/help` is now a paginated 4-page view with buttons
+- ✅ **LXD / Incus auto-detection** — bot now checks for `incus` first, falls back to `lxc` (LXD). All container commands route through the detected runtime automatically
+
+### New Features
+- 🆕 **`/marketplace`** — Buy, sell, edit, and browse VPS listings using MoonCoins, Invites, or Real Money
+- 🆕 **`/account`** — MoonCoin balance, stats, earning info, and admin coin management
+- 🆕 **MoonCoin system** — Passive earning via invites, chat, events, giveaways; multipliers for VIP/booster roles
+- 🆕 **`/claim` inv/coin** — Free plans now accept Invites or MoonCoins as payment; balances are deducted on claim
+- 🆕 **Incus support** — Full Incus container runtime support alongside LXD
+
+### Changes
+- 🔄 `/role list` — Premium UI with role icons, colors, member join dates
+- 🔄 `/role add/remove` — Detailed DM sent to user with role-specific message
+- 🔄 Free plans — Now show dual-currency prices (Invites + MoonCoins) in `/plans`
+- 🔄 `/help` — Now a tabbed 4-page interactive menu (User · Admin · Settings · Node)
+- 🗑️ Removed `/transfer`, `/affiliate`, `/claim Promo Code`
+- 🗑️ `/system-admin` — Removed dead extensions: Advanced Server Monitoring, Economy System, Referral Affiliate, Promo Codes, Per-User Disk Cap
+
+---
+
+## Optional Features to Add to the Bot
+
+Here are features you could add in the future. Let me know which ones you want and I'll code them.
+
+| Feature | What it does |
+|---|---|
+| **VPS Renewal** | Allow users to extend their VPS expiry using MoonCoins or payment |
+| **Auto Coin Events** | Schedule timed events that reward extra coins to participants |
+| **Leaderboard** | `/leaderboard` — top coin holders, top inviters, top VPS users |
+| **Daily Reward** | `/daily` — claim a daily coin bonus (cooldown resets every 24h) |
+| **VPS Monitoring Alerts** | DM users when their VPS goes above CPU/RAM threshold |
+| **Invite Leaderboard** | Track top inviters in the server for rewards |
+| **VPS Templates** | Pre-configured server templates (Minecraft, CS2, FiveM, etc.) |
+| **Auto DNS** | Automatically assign subdomains via Cloudflare when a VPS is created |
+| **VPS Logs Channel** | Mirror all VPS events (created, deleted, suspended) to a log channel |
+| **Coin Shop** | `/shop` — spend coins on VPS upgrades, extensions, or custom roles |
+| **VPS Stats Graph** | Generate a PNG graph of CPU/RAM usage over time |
+| **Multi-language** | Translate bot messages to Filipino, Spanish, etc. |
+| **Admin Dashboard** | Web-based dashboard showing all VPS, nodes, and user stats |
+| **VPS Expiry Calendar** | Monthly calendar embed showing all upcoming VPS expirations |
+| **Referral Codes** | Unique invite codes that give both the referrer and new user bonus coins |
