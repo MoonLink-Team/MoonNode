@@ -64,10 +64,8 @@ lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 
 ### 5 — Clone the project
 ```bash
-git clone https://github.com/MoonLink-Team/MoonNode
-cd MoonNode
-apt install zip
-unzip dev.zip
+git clone https://github.com/yourrepo/moonnodes.git
+cd moonnodes
 ```
 
 ### 6 — Create virtual environment and install dependencies
@@ -943,6 +941,42 @@ moonnodes/
 - 🔄 `/help` — Now a tabbed 4-page interactive menu (User · Admin · Settings · Node)
 - 🗑️ Removed `/transfer`, `/affiliate`, `/claim Promo Code`
 - 🗑️ `/system-admin` — Removed dead extensions: Advanced Server Monitoring, Economy System, Referral Affiliate, Promo Codes, Per-User Disk Cap
+
+---
+
+## Changelog — This Update
+
+### Bug Fixes
+- ✅ **`lxc -c` flag error** — Removed unsupported `-c <cols>` shorthand from all LXC/Incus commands. `--format=csv` is now used everywhere without column filters
+- ✅ **Incus not working** — `core/lxc.py` now auto-detects `incus` or `lxc` at startup and routes every command through the correct binary. `_cmd()` and `_fix_args()` handle all edge cases
+- ✅ **A2FA `a2fa_action` not working** — Fixed: now checks `cfg.A2FA` first, then handles `edit`/`remove` correctly with proper DB updates
+- ✅ **PyNaCl / davey warnings** — Suppressed via `warnings.filterwarnings` and `logging.getLogger("discord.voice_client").setLevel(ERROR)`
+- ✅ **`Command failed (no output)`** — `execute_lxc` now logs both stdout and stderr in all failure cases
+
+### New Commands & Features
+- 🔄 **`/node`** — Converted from 6 separate subcommands to **one command with `pick_one:` choices**. Create and Edit use Discord Modals (popup forms) — no parameters needed in the command bar
+- 🎭 **`/help`** — Fully role-based pages. Users see User commands only. Admins see Admin panel. Mods see Mod tools. Devs see Dev tools. Owners see everything. Tab buttons switch between pages
+- 🎫 **`/support`** — Now gated behind ISTS extension. Posts **Claim / Close / Mark Done** buttons inside the thread. DMs the ticket opener when claimed or closed
+- 🏆 **Giveaway winner DM** — Rich premium embed with container name, specs, OS, and instructions
+- 🛒 **Marketplace buy** — Container is renamed to reflect new owner. Seller receives a premium DM
+
+### Extensions — All Now Working
+
+| Extension | Task | Frequency |
+|---|---|---|
+| **Scheduled Backups** (SOSB) | Auto-snapshots all running VPS | Hourly check, runs at configured time |
+| **Auto Expire & Suspend** (AES) | Stops VPS past expiry, DMs owner | Every 6 hours |
+| **Renewal Reminders** (RR) | DMs owner at 7, 3, 1 day before expiry | Every 6 hours |
+| **VPS Monitoring Alerts** | DMs owner when CPU/RAM exceeds threshold | Every 10 minutes |
+| **Backup Limits** (UBL) | Deletes oldest auto-snapshots over the limit | Every 12 hours |
+| **Ticket System** (ISTS) | `/support` enabled, Close/Claim/Done buttons | On demand |
+| **Multi-Server Tickets** (MSTC) | Verifies ticket channels exist per guild | Every 24 hours |
+| **Admin 2FA** (A2FA) | PIN modal blocks sensitive actions | On each admin action |
+| **Multi-Node** | Enables multi-node cluster commands | On demand |
+
+### Extension List (all toggleable in `/system-admin`)
+Multi-Node Support · Scheduled Backups · Ticket System · Auto Expire & Suspend · Renewal Reminders · Admin 2FA · Multi-Server Tickets · Backup Limits · Marketplace · Account & MoonCoin · VPS Renewal · VPS Monitoring Alerts · VPS Templates · Multi-language
+
 
 ---
 
