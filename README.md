@@ -64,8 +64,10 @@ lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 
 ### 5 — Clone the project
 ```bash
-git clone https://github.com/yourrepo/moonnodes.git
-cd moonnodes
+git clone https://github.com/MoonLink-Team/MoonNode
+cd MoonNode
+apt install zip
+unzip dev.zip
 ```
 
 ### 6 — Create virtual environment and install dependencies
