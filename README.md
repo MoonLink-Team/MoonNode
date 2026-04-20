@@ -66,7 +66,7 @@ lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 ```bash
 git clone https://github.com/MoonLink-Team/MoonNode
 cd MoonNode
-apt install zip
+apt install unzip
 unzip dev.zip
 ```
 
@@ -330,306 +330,6 @@ Admins can also run `/manage user:@someone` to manage any user's VPS.
 | `/payment action: payment_name: [image:]` | Add, edit, remove, or list payment methods |
 | `/create user: plan_name: plan_type:` | Deploy a new VPS (select node → select OS) |
 | `/delete user: vps_number: [reason:]` | Permanently delete a VPS container |
-| `/vps action: container_name: [reason:]` | Suspend or unsuspend a VPS |
-| `/list-all` | View all VPS across every user and node |
-| `/giveaway action:` | Start, cancel, or list active giveaways |
-| `/affiliate` | View, add, or remove referral credits for any user |
-| `/system-admin action:` | Extension toggles, maintenance mode, DB clean, A2FA |
-| `/lxc-list [node_id]` | List raw LXC containers on a node |
-
----
-
-### 🌐 Node Management (`/node`)
-
-| Command | Description |
-|---|---|
-| `/node list` | List all registered nodes with host/port |
-| `/node status [node_id]` | Live CPU / RAM / Disk stats per node (blank = all nodes) |
-| `/node create name: host: [port:]` | Register a new LXD remote and auto-configure the remote |
-| `/node edit node_id: [new_name:] [new_host:] [new_port:]` | Update node connection details |
-| `/node delete node_id:` | Remove a node (only if no VPS are on it) |
-| `/node migrate vps_name: to_node:` | Live-migrate a VPS container to another node |
-| `/lxc-list [node_id]` | Show raw `lxc list` output for any registered node |
-
----
-
-### ⚙️ /set Settings Reference
-
-| Setting | Value Format | Description |
-|---|---|---|
-| `Log Channel` | Channel ID | Where bot activity logs are sent |
-| `Payment Channel` | Channel ID | Where payment proof screenshots go |
-| `Ticket Channel` | Channel ID | Where support threads are created |
-| `CPU Threshold %` | Number (0–100) | CPU % that triggers a warning log |
-| `RAM Threshold %` | Number (0–100) | RAM % that triggers a warning log |
-| `Backup Limits` | `enable` / `disable` / number | Max snapshots per VPS (requires Backup Limits extension) |
-| `Scheduled Backups` | `enable` / `disable` | Toggle scheduled auto-snapshots |
-
-For `Backup Limits` and `Scheduled Backups` you can also pass:
-- `option:` — frequency or per-plan cap (e.g. `daily`, `weekly`, `3`)
-- `date:` — start date in `1/12/2025` format
-- `time:` — run time in `12:00AM` format
-
-Example:
-```
-/set setting:Scheduled Backups  value:enable  option:daily  date:1/1/2025  time:2:00AM
-```
-
----
-
-### ⚙️ /system-admin Actions Reference
-
-| Action | Description |
-|---|---|
-| `Extension Toggle` | Enable or disable an extension at runtime |
-| `Maintenance Mode` | Toggle maintenance mode (bot shows "Under Maintenance" status) |
-| `View Extensions` | See all extensions and their current On/Off state |
-| `Clean DB` | Remove stale/empty entries from the VPS database |
-| `A2FA Management` | Set or remove your admin 2-Factor PIN |
-
----
-
-## Extensions
-
-Extensions are optional features you can toggle on/off from `/system-admin action:Extension Toggle` or by setting them in `.env`.
-
-| Extension | .env Key | What it does |
-|---|---|---|
-| **Multi-Node Support** | `Multi-Node=True` | Enables multi-server LXD cluster. Register additional nodes with `/node create`. VPS can be created on or migrated to any node. |
-| **Scheduled Backups** | `SOSB=True` | Automatically snapshots all running VPS every 24 hours. Schedule the time with `/set setting:Scheduled Backups`. |
-| **Ticket System** | `ISTS=True` | Enables `/support` to open private Discord threads for VPS issues. Requires a Ticket Channel set via `/set`. |
-| **Auto Expire & Suspend** | `AES=True` | Automatically stops a VPS when its expiry date passes. Notifies the owner by DM. |
-| **Renewal Reminders** | `RR=True` | Sends a DM to the VPS owner 3 days before their VPS expires, reminding them to renew. |
-| **Admin 2FA** | `A2FA=True` | Requires a 4-digit PIN for sensitive admin actions. Set your PIN with `/system-admin action:A2FA Management`. |
-| **Multi-Server Tickets** | `MSTC=True` | Allows support tickets to be routed to different channels per server (for multi-guild setups). |
-| **Backup Limits** | `UBL_ENABLED=True` | Enforces a maximum number of snapshots per VPS. Configure the cap with `/set setting:Backup Limits`. |
-
----
-
-## Setting Up a Node (Multi-Node Cluster)
-
-A **node** is any Linux server running LXD that the bot can connect to remotely. Your main bot server is always `local` (Node #1). You can add as many extra servers as you want — each becomes a separate node that can host VPS containers independently.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Discord Bot (local)                   │
-│               bot.py  ·  moonnodes.db                   │
-└──────────────┬──────────────────────────┬───────────────┘
-               │  LXD API (port 8443)     │  LXD API (port 8443)
-               ▼                          ▼
-   ┌───────────────────┐      ┌───────────────────┐
-   │   Node: node-sg-1 │      │   Node: node-us-1 │
-   │   Singapore VPS   │      │   US East VPS     │
-   └───────────────────┘      └───────────────────┘
-```
-
----
-
-### Step 1 — Requirements for the Remote Node Server
-
-Each node server needs:
-
-| Requirement | Details |
-|---|---|
-| OS | Ubuntu 20.04+ or Debian 11+ |
-| LXD | 5.0+ (installed via snap) |
-| Open port | **8443** accessible from the bot server |
-| RAM | 2 GB minimum (more depending on how many VPS you host) |
-| Storage | 20 GB minimum |
-
-The remote node does **not** need Python or the bot code. It only needs LXD running.
-
----
-
-### Step 2 — Install Incus or LXD on the Remote Node
-
-You can use either **Incus** (recommended) or **LXD**. The bot auto-detects which one is installed — you don't need to configure anything.
-
-### Step 2a — Install via Incus (Recommended — Zabbly repo)
-
-Incus is the modern successor to LXD. The bot detects it automatically.
-
-```bash
-# 1. Install dependencies
-sudo apt update
-sudo apt install curl -y
-sudo mkdir -p /etc/apt/keyrings/
-
-# 2. Add Zabbly repository key
-curl -fsSL https://pkgs.zabbly.com/key.asc | sudo tee /etc/apt/keyrings/zabbly.asc > /dev/null
-
-# 3. Register the Incus stable repo
-echo "deb [signed-by=/etc/apt/keyrings/zabbly.asc] https://pkgs.zabbly.com/incus/stable $(. /etc/os-release && echo ${VERSION_CODENAME}) main" | \
-  sudo tee /etc/apt/sources.list.d/zabbly-incus-stable.list
-
-# 4. Install Incus
-sudo apt update
-sudo apt install incus -y
-
-# 5. Initialize
-sudo incus admin init --auto
-
-# 6. (Optional) run without sudo
-sudo usermod -aG incus-admin $USER
-newgrp incus-admin
-
-# 7. Verify
-incus list
-```
-
-> Use `incus` everywhere you'd normally type `lxc`. The bot handles this automatically.
-
----
-
-### Step 2b — Install via LXD / Snap (Alternative)
-
-
-
-SSH into the remote server and run:
-
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install snapd if not present
-sudo apt install snapd -y
-
-# Install LXD
-sudo snap install lxd
-
-# Add your user to the lxd group
-sudo usermod -aG lxd $USER
-newgrp lxd
-
-# Verify
-lxc --version
-```
-
----
-
-### Step 3 — Initialize LXD on the Remote Node
-
-Run the LXD setup wizard:
-
-```bash
-sudo lxd init
-```
-
-When prompted, use these recommended answers:
-
-```
-Would you like to use LXD clustering? (yes/no) [default=no]: no
-Do you want to configure a new storage pool? (yes/no) [default=yes]: yes
-Name of the new storage pool [default=default]: default
-Name of the storage backend to use (btrfs, dir, lvm, zfs, ceph) [default=zfs]: dir
-Would you like to connect to a MAAS server? (yes/no) [default=no]: no
-Would you like to create a new local network bridge? (yes/no) [default=yes]: yes
-What should the new bridge be called? [default=lxdbr0]: lxdbr0
-What IPv4 address should be used? (CIDR subnet notation, "auto" or "none") [default=auto]: auto
-What IPv6 address should be used? (CIDR subnet notation, "auto" or "none") [default=auto]: none
-Would you like the LXD server to be available over the network? (yes/no) [default=no]: YES  ← important
-Address to bind LXD to (not including port) [default=all]: all
-Port to bind LXD to [default=8443]: 8443
-Would you like stale cached images to be updated automatically? (yes/no) [default=yes]: yes
-Would you like a YAML "lxd init" preseed to be printed? (yes/no) [default=no]: no
-```
-
-> **Critical:** Answer **yes** to "Would you like the LXD server to be available over the network?" — this is what allows the bot server to connect to this node.
-
----
-
-### Step 4 — Open Port 8443 on the Remote Node
-
-```bash
-# Using UFW (Ubuntu default firewall)
-sudo ufw allow 8443/tcp
-sudo ufw reload
-sudo ufw status
-
-# Or using iptables directly
-sudo iptables -A INPUT -p tcp --dport 8443 -j ACCEPT
-```
-
-If your server is behind a cloud provider firewall (AWS, GCP, DigitalOcean, Hetzner, etc.), also open port **8443** in the provider's security group / firewall rules panel.
-
-Verify it's reachable from the bot server:
-```bash
-# Run this on the BOT server, not the node
-nc -zv <node-ip> 8443
-# Should say: Connection to <node-ip> 8443 port [tcp/*] succeeded!
-```
-
----
-
-### Step 5 — Trust the Bot Server on the Node
-
-On the **remote node server**, generate and show the LXD trust certificate token:
-
-```bash
-# LXD 5.x — use tokens (recommended)
-lxc config trust add bot-server --name moonnodes
-```
-
-This outputs a one-time token. Copy it — you'll use it in Step 6.
-
-**Alternative (password-based, older LXD versions):**
-```bash
-lxc config set core.trust_password your-secret-password
-```
-
----
-
-### Step 6 — Add the Remote Node as an LXD Remote on the Bot Server
-
-On the **bot server** (where `bot.py` runs):
-
-**Token method (LXD 5.x):**
-```bash
-lxc remote add node-sg-1 https://<node-ip>:8443 --token <paste-token-here>
-```
-
-**Password method (older LXD):**
-```bash
-lxc remote add node-sg-1 https://<node-ip>:8443 --accept-certificate
-# Enter the trust password when prompted
-```
-
-**Verify the connection:**
-```bash
-lxc remote list
-# node-sg-1 should appear
-
-lxc list node-sg-1:
-# Should show (empty list) with no errors
-```
-
-> Replace `node-sg-1` with your chosen name. Use the same name when registering in the bot.
-
----
-
-### Step 7 — Enable Multi-Node in .env
-
-On the bot server, edit your `.env`:
-
-```env
-Multi-Node=True
-```
-
-Then restart the bot:
-```bash
-sudo systemctl restart moonnodes
-# or:
-source venv/bin/activate && python bot.py
-```
-
----
-
-### Step 8 — Register the Node in the Bot
-
-In Discord, run:
-
-```
-/node create  name:node-sg-1  host:<nodely delete a VPS container |
 | `/vps action: container_name: [reason:]` | Suspend or unsuspend a VPS |
 | `/list-all` | View all VPS across every user and node |
 | `/giveaway action:` | Start, cancel, or list active giveaways |
@@ -1278,6 +978,142 @@ moonnodes/
 
 ### Extension List (all toggleable in `/system-admin`)
 Multi-Node Support · Scheduled Backups · Ticket System · Auto Expire & Suspend · Renewal Reminders · Admin 2FA · Multi-Server Tickets · Backup Limits · Marketplace · Account & MoonCoin · VPS Renewal · VPS Monitoring Alerts · VPS Templates · Multi-language
+
+
+---
+
+## Latest Update — Full Bot Overhaul
+
+### 🐛 Critical Fixes
+
+| Fix | Detail |
+|---|---|
+| `get_container_cpu_raw` ImportError | Added back as aliases in `core/lxc.py` — `manage_view.py` now loads correctly |
+| Incus idmap error | `security.privileged=true` is now set **before** `lxc start` — VPS creation works on Incus |
+| Container name shows user ID not username | Container names now use the Discord username slug: `vps-john-1` instead of `vps-1234567890-1` |
+| `(current):` in Incus remote list | `list_lxd_remotes()` strips `(current)` annotation from all Incus remote output |
+| `lxc list --format=csv -c n,u` error | `_fix_args()` now strips all `-c <cols>` variants before every command |
+| PyNaCl / davey warnings | Suppressed in `core/config.py` via `warnings.filterwarnings` and logger level |
+
+### 🆕 New Commands
+
+| Command | Who | What it does |
+|---|---|---|
+| `/dev action:` | Dev only | 10 developer tools: config dump, DB stats, runtime info, log viewer, cog reload, test DM, host stats, extension states, cache purge, LXC test |
+| `/mod action:` | Mod only | 10 mod tools: user info, VPS info, list VPS, search, server stats, open tickets, suspension logs, DM user, warn, warn log |
+| `/system action:MoonCoin Earning` | Owner | Add/edit/remove/list MoonCoin earning rules (name, amount, cooldown) |
+| `/list action:All VPS` | Admin | View all VPS across all users (previously `/list-all`) |
+| `/account options:VPS user_action:Share` | User | Share or unshare VPS access (replaces `/share`) |
+| `/account options:VPS user_action:Backup` | User | Create, list, or restore backups (replaces `/backup` for inline use) |
+| `/account admin_action:Suspend VPS` | Admin | Suspend a user's VPS with DM notification |
+| `/account admin_action:Unsuspend VPS` | Admin | Unsuspend a user's VPS with DM notification |
+
+### 🔄 Changed Commands
+
+| Old | New | Why |
+|---|---|---|
+| `/system-admin` | `/system` | Shorter, cleaner name |
+| `/list-all` | `/list action:All VPS` | Merged into single `/list` command |
+| `/share` | `/account options:VPS user_action:Share` | Consolidated into /account |
+| `/vps` | `/account admin_action:Suspend VPS` | Consolidated into /account |
+
+### 🗑️ Removed Commands
+`/vps`, `/share`, `/list-all` — all replaced by unified `/account` and `/list` commands
+
+### 🏗️ Role Hierarchy (set in Discord server)
+
+| Role | Sees in `/help` | Key permissions |
+|---|---|---|
+| 👑 Owner | All pages | Everything — extensions, A2FA, nodes |
+| 🛡️ Admin | User + Admin | Create/delete VPS, set config, manage all VPS |
+| 💻 Dev | User + Dev + Admin | Debug tools, cog reload, runtime diagnostics |
+| 🔨 Mod | User + Mod | User lookup, search, warn, DM, ticket management |
+| 🌙 User | User only | Their own VPS, marketplace, coins, support |
+
+### 📁 File Structure Changes
+
+```
+commands/
+├── Owner/
+│   ├── admin.py        ← /role (was admin.py, unchanged)
+│   ├── create.py       ← /create
+│   ├── delete.py       ← /delete (now DMs owner on delete)
+│   ├── giveaway.py     ← /giveaway (winner DM improved)
+│   ├── nodes.py        ← /node pick_one: (single command)
+│   └── system.py       ← /system (was system_admin.py)
+├── Admin/
+│   └── set_cmd.py      ← /set setting: option: value:
+├── Dev/
+│   └── dev_tools.py    ← /dev (NEW — 10 tools)
+├── Mod/
+│   └── mod_tools.py    ← /mod (NEW — 10 tools)
+└── User/
+    ├── account.py      ← /account (VPS share/backup/suspend + coins)
+    ├── claim.py        ← /claim (inv/coin payment)
+    ├── help.py         ← /help (role-based tabs)
+    ├── list_cmd.py     ← /list action:mine|all
+    ├── manage.py       ← /manage (My VPS + Shared VPS tabs)
+    ├── marketplace.py  ← /marketplace
+    ├── plans.py        ← /plans (dual-currency display)
+    ├── support.py      ← /support (ISTS-gated, Close/Claim/Done)
+    └── status.py       ← /status
+```
+
+---
+
+## Critical Fixes — Latest Session
+
+### 🔥 Monitor was killing all VPS
+**Root cause:** `core/monitoring.py` called `lxc stop --all --force` whenever host CPU or RAM
+exceeded the threshold. This destroyed every container including ones that were just created.
+
+**Fix:** Monitoring is now **log-only**. It warns in the log channel but never stops containers.
+To suspend a specific VPS use `/account admin_action:VPS vps_action:Suspend`.
+
+### 🔧 `/usr/sbin/lxc: exec: /snap/bin/lxc: not found`
+**Root cause:** When running as a systemd service, `/snap/bin` is not in `$PATH`.
+`/usr/sbin/lxc` is a wrapper that tries to call `/snap/bin/lxc` and fails silently.
+
+**Fix:** `core/lxc.py` now resolves the **full absolute path** to the binary at startup
+by checking `/usr/bin/incus`, `/usr/bin/lxc`, and other common locations before falling
+back to `shutil.which()`. The resolved path is passed to all backends.
+
+### 🖥️ VPS not showing in /manage after creation
+**Root cause:** The monitor stopped the VPS immediately after creation and reset
+`vps["status"]` to `"stopped"`. The bot then showed "You have no VPS" because
+it only showed running containers.
+
+**Fix 1:** Monitor no longer stops containers.
+**Fix 2:** On bot startup, `_sync_vps_states()` reads actual container states from
+incus/lxd and updates `vps_data` to match. If your VPS is running in incus, it
+will now show correctly in Discord even after a bot restart or crash.
+
+### ❌ TransformerError: Failed to convert to Member
+**Root cause:** `/manage user:discord.Member` and `/create user:discord.Member` 
+fail when Discord can't resolve a username to a server member (user hasn't opened
+Discord recently, or the bot can't see them).
+
+**Fix:** `/manage` now uses `user_id: str` — paste the Discord User ID instead of
+@mentioning. Also accepts `<@123456>` mention format and strips it automatically.
+
+### 📁 vps_data.json path bug
+**Root cause:** `"vps_data.json"` is a relative path — it resolves differently
+depending on where Python is launched from, causing the file to be created in
+the wrong directory.
+
+**Fix:** `core/database.py` now uses an absolute path derived from `__file__`:
+```python
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VPS_DATA_FILE = os.path.join(_BASE_DIR, "vps_data.json")
+```
+
+### ⚡ Instant command sync (fix "did not respond")
+Add to `.env`:
+```env
+GUILD_ID=YOUR_DISCORD_SERVER_ID
+```
+Commands sync to your server **instantly** instead of waiting up to 1 hour for
+global Discord propagation.
 
 
 ---
