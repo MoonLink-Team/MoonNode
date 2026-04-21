@@ -64,10 +64,8 @@ lxc storage list    # note the pool name for DEFAULT_STORAGE_POOL in .env
 
 ### 5 — Clone the project
 ```bash
-git clone https://github.com/MoonLink-Team/MoonNode
-cd MoonNode
-apt install unzip
-unzip dev.zip
+git clone https://github.com/yourrepo/moonnodes.git
+cd moonnodes
 ```
 
 ### 6 — Create virtual environment and install dependencies
@@ -146,61 +144,62 @@ nano .env    # fill in the values below
 ## Configuration (.env)
 
 ```env
-# ═══════════════════════════════════════════════════════════════════════════
-# MoonNodes VPS Manager — Environment Configuration
-# Copy this file to .env and fill in your values
-# ═══════════════════════════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────
+# REQUIRED
+# ─────────────────────────────────────────────────────────────
+DISCORD_TOKEN=your_bot_token_here
+BOT_OWNER_ID=your_discord_user_id_here     # right-click yourself → Copy User ID
 
-# ── REQUIRED ────────────────────────────────────────────────────────────────
-DISCORD_TOKEN=your_bot_token_here          # From Discord Developer Portal
-BOT_OWNER_ID=your_discord_user_id          # Right-click yourself → Copy User ID
+# ─────────────────────────────────────────────────────────────
+# APPEARANCE
+# ─────────────────────────────────────────────────────────────
+BOT_COLOR=5865F2                            # Hex embed colour (no #)
 
-# ── SYNC (important for speed) ──────────────────────────────────────────────
-# Set to your server ID for INSTANT command sync (dev/production single-server)
-# Leave as 0 to sync globally (can take up to 1 hour to propagate)
-GUILD_ID=0
+# ─────────────────────────────────────────────────────────────
+# LXC / VPS
+# ─────────────────────────────────────────────────────────────
+VPS_PREFIX=vps                              # Prefix for container names
+DEFAULT_STORAGE_POOL=default                # LXD pool name  (lxc storage list)
+VPS_USER_ROLE_ID=0                          # Discord role ID granted after VPS creation
 
-# ── APPEARANCE ──────────────────────────────────────────────────────────────
-BOT_COLOR=5865F2                           # Hex embed colour (no #)
+# ─────────────────────────────────────────────────────────────
+# RESOURCE LIMITS
+# ─────────────────────────────────────────────────────────────
+MAX_RAM_GB=16
+MAX_CPU_CORES=8
+CPU_THRESHOLD=90                            # % usage that triggers a log warning
+RAM_THRESHOLD=90
 
-# ── VPS / CONTAINER ─────────────────────────────────────────────────────────
-VPS_PREFIX=vps                             # Prefix for container names: vps-john-1
-DEFAULT_STORAGE_POOL=default               # LXD/Incus pool name (lxc storage list)
-VPS_USER_ROLE_ID=0                         # Discord role ID given after VPS creation (0=off)
-
-# ── RESOURCE LIMITS ─────────────────────────────────────────────────────────
-MAX_RAM_GB=16                              # Max RAM per VPS
-MAX_CPU_CORES=8                            # Max CPU cores per VPS
-CPU_THRESHOLD=90                           # % that triggers a log warning
-RAM_THRESHOLD=90                           # % that triggers a log warning
-UBL_LIMIT=3                               # Default backup limit per VPS
-
-# ── PLANS ───────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# PLANS
+# ─────────────────────────────────────────────────────────────
 PLANS=True
 CLAIM_PREMIUM=True
 CLAIM_FREE=True
 
-# ── EXTENSIONS (toggle via /system action:Extension Toggle in Discord) ───────
-# Set True here for default-on, or leave False and enable via /system
-SOSB=False           # Scheduled Backups — auto-snapshot all VPS daily
-ISTS=False           # Ticket System — /support creates private threads
-AES=False            # Auto Expire & Suspend — suspend VPS on expiry
-RR=False             # Renewal Reminders — DM 7/3/1 days before expiry
-A2FA=False           # Admin 2FA — require PIN for sensitive admin actions
-MSTC=False           # Multi-Server Tickets — per-guild ticket channels
-UBL_ENABLED=False    # Backup Limits — cap snapshots per VPS
-MARKETPLACE=True     # Marketplace — buy/sell VPS with coins or money
-ACCOUNT=True         # Account & MoonCoin — coin system, /account command
-VPS_RENEWAL=False    # VPS Renewal — /upgrade extends expiry
-VPS_MONITORING=False # VPS Monitoring Alerts — DM user when VPS is overloaded
-VPS_TEMPLATES=False  # VPS Templates — Minecraft/CS2/Nginx in OS selector
-MULTILANG=False      # Multi-language (stub — implement translations to activate)
-Multi-Node=False     # Multi-Node — LXD/Incus cluster with multiple servers
+# ─────────────────────────────────────────────────────────────
+# EXTENSIONS  (True / False)
+# ─────────────────────────────────────────────────────────────
+SOSB=False          # Scheduled Backups
+ISTS=False          # Ticket System (support tickets)
+AES=False           # Auto Expire & Suspend
+RR=False            # Renewal Reminders
+A2FA=False          # Admin 2-Factor PIN
+MSTC=False          # Multi-Server Ticket Channels
+UBL_ENABLED=False   # Backup Limits
+BACKUP_LIMIT=1      # Default per-VPS backup cap
+Multi-Node=False    # Multi-node LXD cluster
 
-# ── MOONCOIN ────────────────────────────────────────────────────────────────
-MAIN_CHAT_ID=0       # Channel ID where chatting earns +1 coin (0 = disabled)
+# ─────────────────────────────────────────────────────────────
+# NEW FEATURES
+# ─────────────────────────────────────────────────────────────
+MARKETPLACE=True        # Enable /marketplace command
+ACCOUNT=True            # Enable /account and MoonCoin system
+MAIN_CHAT_ID=0          # Channel ID where chat gives +1 coin (0 = disabled)
 
-# ── CLOUDFLARE (optional — automatic subdomain per VPS) ─────────────────────
+# ─────────────────────────────────────────────────────────────
+# CLOUDFLARE  (optional — automatic subdomain creation)
+# ─────────────────────────────────────────────────────────────
 CF_API_TOKEN=
 CF_ZONE_ID=
 CF_DOMAIN=yourdomain.com
