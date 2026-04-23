@@ -43,8 +43,10 @@ The user running the bot must be in the `lxd` or `incus-admin` group (see sectio
 
 ```bash
 # 1. Clone or upload the bot files
-git clone https://github.com/yourrepo/moonnodes.git
-cd moonnodes
+git clone https://github.com/MoonLink-Team/MoonNode
+cd MoonNode
+apt install zip
+unzip dev.zip
 
 # 2. Install Python dependencies
 pip install -r requirements.txt
