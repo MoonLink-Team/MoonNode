@@ -18,7 +18,6 @@ cd MoonNode
 # OR from zip
 apt install zip
 unzip dev.zip
-cd MoonNode
 
 # Python deps
 pip3 install -r requirements.txt
