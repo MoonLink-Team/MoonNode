@@ -93,8 +93,9 @@ ls /dev/kvm   # should exist
 
 ```bash
 # Clone or unzip the bot into a folder
-unzip dev.zip -d moonnodes
-cd moonnodes/dev_new
+git clone https://github.com/MoonLink-Team/MoonNode
+unzip dev.zip -d MoonNode
+cd MoonNode
 
 # Create a virtual environment
 python3 -m venv venv
