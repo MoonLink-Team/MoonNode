@@ -110,6 +110,10 @@ ls /dev/kvm       # should exist
 git clone https://github.com/MoonLink-Team/MoonNode
 cd MoonNode
 
+# Make the dev.zip to unzip
+apt install zip
+unzip
+
 # Create a virtual environment
 python3 -m venv venv
 source venv/bin/activate
@@ -130,35 +134,32 @@ pip install -r requirements.txt
 Incus is the recommended backend — the community fork of LXD, actively maintained.
 
 ```bash
-# Add Zabbly repository (latest Incus builds)
-curl -fsSL https://pkgs.zabbly.com/key.asc | gpg --dearmor -o /etc/apt/keyrings/zabbly.gpg
-sh -c 'cat > /etc/apt/sources.list.d/zabbly-incus-stable.sources << EOF
-Enabled: yes
-Types: deb
-URIs: https://pkgs.zabbly.com/incus/stable
-Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
-Components: main
-Archive-Key: /etc/apt/keyrings/zabbly.gpg
-EOF'
+# bash
+curl -fsSL https://pkgs.zabbly.com/get/incus-stable | sh
+incus admin init --auto
 
-apt update
-apt install -y incus
+# Profile
+incus profile set default security.privileged true
+incus profile set default security.nesting true
+incus profile set default security.syscalls.intercept.mknod true
 
-# Initialise Incus
-incus admin init --minimal
+# Storage (pick one)
+incus storage create default dir
+# incus storage create default zfs   ← recommended for production
 
-# Verify
-incus version
-incus launch images:ubuntu/22.04 test-container
-incus list
-incus delete test-container --force
+# Network
+incus network create incusbr0
+incus profile device add default eth0 nic nictype=bridged parent=incusbr0
+
+# Test
+incus launch images:ubuntu/22.04 test && incus list && incus delete test --force
 ```
 
 **Add your user to the incus group:**
 
 ```bash
-usermod -aG incus $USER
-newgrp incus
+usermod -aG incus-admin $USER
+newgrp incus-admin
 ```
 
 **Verify binary path** (bot auto-detects `/usr/bin/incus`):
@@ -233,6 +234,7 @@ Create a `.env` file in the bot root (same folder as `bot.py`):
 
 ```bash
 cp .env.example .env
+nano .env
 ```
 
 ### Required
