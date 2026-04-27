@@ -112,7 +112,7 @@ cd MoonNode
 
 # Make the dev.zip to unzip
 apt install zip
-unzip
+unzip dev.zip
 
 # Create a virtual environment
 python3 -m venv venv
