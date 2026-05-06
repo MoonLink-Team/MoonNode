@@ -117,6 +117,7 @@ unzip dev.zip
 # Create a virtual environment
 python3 -m venv venv
 source venv/bin/activate
+apt install screen
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -325,6 +326,7 @@ MAIN_CHAT_ID=
 ## 8. Run the Bot
 
 ```bash
+screen -S moonbot
 source venv/bin/activate
 python3 bot.py
 ```
